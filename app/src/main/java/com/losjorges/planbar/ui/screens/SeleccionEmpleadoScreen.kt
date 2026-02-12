@@ -95,7 +95,7 @@ fun SeleccionEmpleadoScreen(navController: NavHostController) {
                 ) {
                     items(listaEmpleados) { empleado ->
                         EmpleadoCard(empleado) {
-                            Toast.makeText(context, "Sesión: ${empleado.nombre_empleado}", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Bienvenid@, ${empleado.nombre_empleado}", Toast.LENGTH_SHORT).show()
                             navController.navigate("menu")
                         }
                     }
