@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Menu
@@ -18,10 +19,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.losjorges.planbar.models.Empleado
 import com.losjorges.planbar.models.LoginResponse
+import com.losjorges.planbar.models.Mesa
 import com.losjorges.planbar.network.RetrofitClient
 import kotlinx.coroutines.launch
 import retrofit2.Call
@@ -109,18 +112,182 @@ fun AdminScreen() {
             Box(modifier = Modifier.padding(paddingValues)) {
                 when (pantallaActual) {
                     "empleados" -> GestionEmpleadosContent()
-                    "mesas" -> PlaceholderContent("Gestión Mesas Admin (Próximamente)")
-                    "productos" -> PlaceholderContent("Gestión Productos Admin (Próximamente)")
+                    "mesas" -> GestionMesasContent()
                 }
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlaceholderContent(texto: String) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(texto, fontSize = 18.sp, color = Color.Gray)
+fun GestionMesasContent() {
+    val context = LocalContext.current
+
+    var numero by remember { mutableStateOf("") }
+    var capacidad by remember { mutableStateOf("") }
+
+    var listaMesas by remember { mutableStateOf(emptyList<Mesa>()) }
+    var idMesaSeleccionada by remember { mutableStateOf<Int?>(null) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var mesaToDelete by remember { mutableStateOf<Mesa?>(null) }
+
+    fun limpiarFormulario() {
+        numero = ""; capacidad = ""; idMesaSeleccionada = null
+    }
+
+    fun cargarMesas() {
+        RetrofitClient.instance.getMesas().enqueue(object : Callback<List<Mesa>> {
+            override fun onResponse(call: Call<List<Mesa>>, response: Response<List<Mesa>>) {
+                if (response.isSuccessful) listaMesas = response.body() ?: emptyList()
+            }
+            override fun onFailure(call: Call<List<Mesa>>, t: Throwable) {}
+        })
+    }
+
+    LaunchedEffect(Unit) { cargarMesas() }
+
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(4.dp)) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = if (idMesaSeleccionada == null) "Añadir Nueva Mesa" else "Modificar Mesa",
+                    fontWeight = FontWeight.Bold,
+                    color = if (idMesaSeleccionada == null) MaterialTheme.colorScheme.primary else Color(0xFFE65100)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = numero,
+                    onValueChange = { if (it.all { char -> char.isDigit() }) numero = it },
+                    label = { Text("Número de Mesa") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = capacidad,
+                    onValueChange = { if (it.all { char -> char.isDigit() }) capacidad = it },
+                    label = { Text("Capacidad") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = {
+                            val numMesa = numero.toIntOrNull()
+                            val capMesa = capacidad.toIntOrNull()
+
+                            if (numMesa != null && capMesa != null) {
+                                RetrofitClient.instance.insertMesa(numMesa, capMesa).enqueue(object : Callback<LoginResponse> {
+                                    override fun onResponse(call: Call<LoginResponse>, response: Response<LoginResponse>) {
+                                        if (response.isSuccessful) {
+                                            limpiarFormulario()
+                                            cargarMesas()
+                                            Toast.makeText(context, "Mesa añadida", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                    override fun onFailure(call: Call<LoginResponse>, t: Throwable) {}
+                                })
+                            } else {
+                                Toast.makeText(context, "Por favor, introduce números válidos", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        enabled = idMesaSeleccionada == null
+                    ) { Text("Añadir") }
+
+                    Button(
+                        onClick = {
+                            idMesaSeleccionada?.let { id ->
+                                RetrofitClient.instance.updateMesa(id, numero.toInt(), capacidad.toInt()).enqueue(object : Callback<LoginResponse> {
+                                    override fun onResponse(call: Call<LoginResponse>, response: Response<LoginResponse>) {
+                                        if (response.isSuccessful) {
+                                            limpiarFormulario()
+                                            cargarMesas()
+                                            Toast.makeText(context, "Mesa actualizada", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                    override fun onFailure(call: Call<LoginResponse>, t: Throwable) {}
+                                })
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        enabled = idMesaSeleccionada != null,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE65100))
+                    ) { Text("Editar") }
+                }
+
+                if (idMesaSeleccionada != null) {
+                    TextButton(onClick = { limpiarFormulario() }, modifier = Modifier.fillMaxWidth()) { Text("Cancelar Edición", color = Color.Gray) }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+        Text("Mesas del Local", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        LazyColumn(modifier = Modifier.fillMaxSize()) {
+            items(listaMesas) { mesa ->
+                Surface(
+                    onClick = {
+                        idMesaSeleccionada = mesa.id_mesa
+                        numero = mesa.numero_mesa.toString()
+                        capacidad = mesa.capacidad_mesa.toString()
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (idMesaSeleccionada == mesa.id_mesa) Color(0xFFFFF3E0) else Color.White,
+                    tonalElevation = 2.dp
+                ) {
+                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("MESA Nº ${mesa.numero_mesa}", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.Black)
+                            Text("Capacidad: ${mesa.capacidad_mesa} personas", fontSize = 14.sp, color = Color.Gray)
+
+                            Text(
+                                text = "Estado: ${mesa.estado_mesa.uppercase()}",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = when(mesa.estado_mesa.lowercase()) {
+                                    "libre", "disponible" -> Color(0xFF2E7D32)
+                                    "reservada" -> Color(0xFFF57C00)
+                                    "ocupada" -> Color.Red
+                                    else -> Color.Gray
+                                }
+                            )
+                        }
+                        IconButton(
+                            onClick = { mesaToDelete = mesa; showDeleteDialog = true },
+                            modifier = Modifier.background(Color.Red, shape = RoundedCornerShape(4.dp)).size(35.dp)
+                        ) { Text("-", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp) }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showDeleteDialog && mesaToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Eliminar Mesa") },
+            text = { Text("¿Deseas eliminar la mesa nº ${mesaToDelete?.numero_mesa} de forma permanente?") },
+            confirmButton = {
+                Button(
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                    onClick = {
+                        RetrofitClient.instance.deleteMesa(mesaToDelete!!.id_mesa).enqueue(object : Callback<LoginResponse> {
+                            override fun onResponse(call: Call<LoginResponse>, response: Response<LoginResponse>) {
+                                if (response.isSuccessful) { cargarMesas(); showDeleteDialog = false }
+                            }
+                            override fun onFailure(call: Call<LoginResponse>, t: Throwable) { showDeleteDialog = false }
+                        })
+                    }
+                ) { Text("Eliminar") }
+            },
+            dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text("Cancelar") } }
+        )
     }
 }
 
@@ -155,7 +322,6 @@ fun GestionEmpleadosContent() {
     LaunchedEffect(Unit) { cargarEmpleados() }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        // CARD DEL FORMULARIO
         Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(4.dp)) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
@@ -251,9 +417,9 @@ fun GestionEmpleadosContent() {
                 ) {
                     Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("ID: ${emp.id_empleado} | ${emp.rol_empleado.uppercase()}", fontSize = 11.sp, color = Color.Gray)
-                            Text(emp.nombre_empleado, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                            Text("DNI: ${emp.dni_empleado}", fontSize = 13.sp)
+                            Text("ID: ${emp.id_empleado} | ${emp.rol_empleado.uppercase()}", fontSize = 11.sp, color = Color.Black)
+                            Text(emp.nombre_empleado, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black)
+                            Text("DNI: ${emp.dni_empleado}", fontSize = 13.sp, color = Color.Black)
                         }
                         IconButton(
                             onClick = { employeeToDelete = emp; showDeleteDialog = true },

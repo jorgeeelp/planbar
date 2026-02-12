@@ -12,20 +12,26 @@ import retrofit2.http.GET
 import retrofit2.http.POST
 
 interface ApiService {
-    // 3. Login del administrador
+    // ==========================================
+    // 1. LOGIN Y SEGURIDAD
+    // ==========================================
     @FormUrlEncoded
     @POST("login_admin.php")
     fun loginAdmin(@Field("pass") pass: String): Call<LoginResponse>
 
-    // 1. Obtener empleados para la pantalla de selección (sin admin)
+
+    // ==========================================
+    // 2. GESTIÓN DE EMPLEADOS
+    // ==========================================
+
+    // Listado para pantalla de selección inicial (sin administradores)
     @GET("get_empleados.php")
     fun getEmpleados(): Call<List<Empleado>>
 
-    // 2. Obtener TODOS los empleados para el Administrador
+    // Listado completo para el panel de administración
     @GET("get_empleados_admin.php")
     fun getEmpleadosAdmin(): Call<List<Empleado>>
 
-    // 4. Insertar nuevo empleado (ESTA ES NUEVA)
     @FormUrlEncoded
     @POST("insert_empleado.php")
     fun insertEmpleado(
@@ -33,11 +39,6 @@ interface ApiService {
         @Field("nombre") nombre: String,
         @Field("rol") rol: String
     ): Call<LoginResponse>
-
-    // 5. Eliminar empleado (ESTA ES LA QUE TE FALTA)
-    @FormUrlEncoded
-    @POST("delete_empleado.php")
-    fun deleteEmpleado(@Field("id") id: Int): Call<LoginResponse>
 
     @FormUrlEncoded
     @POST("update_empleado.php")
@@ -48,7 +49,15 @@ interface ApiService {
         @Field("rol") rol: String
     ): Call<LoginResponse>
 
-    // --- GESTIÓN DE MESAS ---
+    @FormUrlEncoded
+    @POST("delete_empleado.php")
+    fun deleteEmpleado(@Field("id") id: Int): Call<LoginResponse>
+
+
+    // ==========================================
+    // 3. GESTIÓN DE MESAS
+    // ==========================================
+
     @GET("get_mesas.php")
     fun getMesas(): Call<List<Mesa>>
 
@@ -56,8 +65,7 @@ interface ApiService {
     @POST("insert_mesa.php")
     fun insertMesa(
         @Field("numero") numero: Int,
-        @Field("capacidad") capacidad: Int,
-        @Field("estado") estado: String
+        @Field("capacidad") capacidad: Int
     ): Call<LoginResponse>
 
     @FormUrlEncoded
@@ -65,8 +73,7 @@ interface ApiService {
     fun updateMesa(
         @Field("id") id: Int,
         @Field("numero") numero: Int,
-        @Field("capacidad") capacidad: Int,
-        @Field("estado") estado: String
+        @Field("capacidad") capacidad: Int
     ): Call<LoginResponse>
 
     @FormUrlEncoded
