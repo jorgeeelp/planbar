@@ -33,7 +33,7 @@ fun AdminScreen() {
 
     var expanded by remember { mutableStateOf(false) }
 
-    val opcionesRol = listOf("barra", "cocinero", "admin")
+    val opcionesRol = listOf("camarero", "cocinero", "admin")
 
     var listaEmpleados by remember { mutableStateOf(emptyList<Empleado>()) }
     var idEmpleadoSeleccionado by remember { mutableStateOf<Int?>(null) }
@@ -106,7 +106,6 @@ fun AdminScreen() {
                             }
                         }
                     }
-                    // --- FIN DEL DESPLEGABLE ---
 
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -196,7 +195,6 @@ fun AdminScreen() {
             }
         }
 
-        // Diálogo de eliminación
         if (showDeleteDialog && employeeToDelete != null) {
             AlertDialog(
                 onDismissRequest = { showDeleteDialog = false },
