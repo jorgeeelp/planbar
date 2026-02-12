@@ -2,6 +2,7 @@ package com.losjorges.planbar.network
 
 import com.losjorges.planbar.models.Empleado
 import com.losjorges.planbar.models.LoginResponse
+import com.losjorges.planbar.models.Mesa
 import retrofit2.Call
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -11,6 +12,11 @@ import retrofit2.http.GET
 import retrofit2.http.POST
 
 interface ApiService {
+    // 3. Login del administrador
+    @FormUrlEncoded
+    @POST("login_admin.php")
+    fun loginAdmin(@Field("pass") pass: String): Call<LoginResponse>
+
     // 1. Obtener empleados para la pantalla de selección (sin admin)
     @GET("get_empleados.php")
     fun getEmpleados(): Call<List<Empleado>>
@@ -18,11 +24,6 @@ interface ApiService {
     // 2. Obtener TODOS los empleados para el Administrador
     @GET("get_empleados_admin.php")
     fun getEmpleadosAdmin(): Call<List<Empleado>>
-
-    // 3. Login del administrador
-    @FormUrlEncoded
-    @POST("login_admin.php")
-    fun loginAdmin(@Field("pass") pass: String): Call<LoginResponse>
 
     // 4. Insertar nuevo empleado (ESTA ES NUEVA)
     @FormUrlEncoded
@@ -46,6 +47,31 @@ interface ApiService {
         @Field("nombre") nombre: String,
         @Field("rol") rol: String
     ): Call<LoginResponse>
+
+    // --- GESTIÓN DE MESAS ---
+    @GET("get_mesas.php")
+    fun getMesas(): Call<List<Mesa>>
+
+    @FormUrlEncoded
+    @POST("insert_mesa.php")
+    fun insertMesa(
+        @Field("numero") numero: Int,
+        @Field("capacidad") capacidad: Int,
+        @Field("estado") estado: String
+    ): Call<LoginResponse>
+
+    @FormUrlEncoded
+    @POST("update_mesa.php")
+    fun updateMesa(
+        @Field("id") id: Int,
+        @Field("numero") numero: Int,
+        @Field("capacidad") capacidad: Int,
+        @Field("estado") estado: String
+    ): Call<LoginResponse>
+
+    @FormUrlEncoded
+    @POST("delete_mesa.php")
+    fun deleteMesa(@Field("id") id: Int): Call<LoginResponse>
 }
 
 object RetrofitClient {
