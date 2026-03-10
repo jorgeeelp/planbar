@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import com.losjorges.planbar.models.Empleado
 import com.losjorges.planbar.models.LoginResponse
 import com.losjorges.planbar.models.Mesa
+import com.losjorges.planbar.models.Producto
 import com.losjorges.planbar.network.RetrofitClient
 import kotlinx.coroutines.launch
 import retrofit2.Call
@@ -113,6 +114,7 @@ fun AdminScreen() {
                 when (pantallaActual) {
                     "empleados" -> GestionEmpleadosContent()
                     "mesas" -> GestionMesasContent()
+                    "productos" -> GestionProductosContent()
                 }
             }
         }
@@ -452,6 +454,230 @@ fun GestionEmpleadosContent() {
                         })
                     }
                 ) { Text("Sí, eliminar", color = Color.White) }
+            },
+            dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text("Cancelar") } }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GestionProductosContent() {
+    val context = LocalContext.current
+
+    // Estados de los campos
+    var nombre by remember { mutableStateOf("") }
+    var precio by remember { mutableStateOf("") }
+    var observaciones by remember { mutableStateOf("") }
+
+    // ESTADOS PARA CATEGORÍA
+    var categoria by remember { mutableStateOf("") }
+    var expandedCat by remember { mutableStateOf(false) }
+    val opcionesCategoria = listOf("entrantes", "carnes", "pescados", "bebidas", "postres")
+
+    var foto by remember { mutableStateOf("default.jpg") }
+    var listaProductos by remember { mutableStateOf(emptyList<Producto>()) }
+    var idProductoSeleccionado by remember { mutableStateOf<Int?>(null) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var productoToDelete by remember { mutableStateOf<Producto?>(null) }
+
+    fun limpiarFormulario() {
+        nombre = ""; precio = ""; observaciones = ""; categoria = ""; idProductoSeleccionado = null
+    }
+
+    fun cargarProductos() {
+        RetrofitClient.instance.getProductos().enqueue(object : Callback<List<Producto>> {
+            override fun onResponse(call: Call<List<Producto>>, response: Response<List<Producto>>) {
+                if (response.isSuccessful) {
+                    listaProductos = response.body() ?: emptyList()
+                } else {
+                    Toast.makeText(context, "Error al cargar: ${response.code()}", Toast.LENGTH_SHORT).show()
+                }
+            }
+            override fun onFailure(call: Call<List<Producto>>, t: Throwable) {
+                Toast.makeText(context, "Fallo al procesar datos: ${t.message}", Toast.LENGTH_LONG).show()
+            }
+        })
+    }
+
+    LaunchedEffect(Unit) { cargarProductos() }
+
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(4.dp)) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = if (idProductoSeleccionado == null) "Nuevo Producto" else "Modificar Producto",
+                    fontWeight = FontWeight.Bold,
+                    color = if (idProductoSeleccionado == null) MaterialTheme.colorScheme.primary else Color(0xFFE65100)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Nombre
+                OutlinedTextField(value = nombre, onValueChange = { nombre = it }, label = { Text("Nombre del Producto") }, modifier = Modifier.fillMaxWidth())
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Fila para Precio y Categoría
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = precio,
+                        onValueChange = { if (it.isEmpty() || it.replace(",", ".").toDoubleOrNull() != null) precio = it },
+                        label = { Text("Precio (€)") },
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                    )
+
+                    // Desplegable de Categoría
+                    ExposedDropdownMenuBox(
+                        expanded = expandedCat,
+                        onExpandedChange = { expandedCat = !expandedCat },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        OutlinedTextField(
+                            value = categoria,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Categoría") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCat) },
+                            modifier = Modifier.menuAnchor()
+                        )
+                        ExposedDropdownMenu(expanded = expandedCat, onDismissRequest = { expandedCat = false }) {
+                            opcionesCategoria.forEach { cat ->
+                                DropdownMenuItem(
+                                    text = { Text(cat) },
+                                    onClick = { categoria = cat; expandedCat = false }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Observaciones
+                OutlinedTextField(value = observaciones, onValueChange = { observaciones = it }, label = { Text("Observaciones / Alérgenos") }, modifier = Modifier.fillMaxWidth())
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Botones
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = {
+                            val precioDouble = precio.replace(",", ".").toDoubleOrNull()
+                            if (nombre.isNotEmpty() && precioDouble != null && categoria.isNotEmpty()) {
+                                RetrofitClient.instance.insertProducto(nombre, precioDouble, categoria, observaciones, foto).enqueue(object : Callback<LoginResponse> {
+                                    override fun onResponse(call: Call<LoginResponse>, response: Response<LoginResponse>) {
+                                        if (response.isSuccessful) {
+                                            limpiarFormulario()
+                                            cargarProductos()
+                                            Toast.makeText(context, "Producto añadido", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                    override fun onFailure(call: Call<LoginResponse>, t: Throwable) {}
+                                })
+                            } else {
+                                Toast.makeText(context, "Rellena Nombre, Precio y Categoría", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        enabled = idProductoSeleccionado == null
+                    ) { Text("Añadir") }
+
+                    Button(
+                        onClick = {
+                            val precioDouble = precio.replace(",", ".").toDoubleOrNull()
+                            idProductoSeleccionado?.let { id ->
+                                if (precioDouble != null) {
+                                    RetrofitClient.instance.updateProducto(id, nombre, precioDouble, categoria, observaciones, foto).enqueue(object : Callback<LoginResponse> {
+                                        override fun onResponse(call: Call<LoginResponse>, response: Response<LoginResponse>) {
+                                            if (response.isSuccessful) {
+                                                limpiarFormulario()
+                                                cargarProductos()
+                                                Toast.makeText(context, "Producto actualizado", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                        override fun onFailure(call: Call<LoginResponse>, t: Throwable) {}
+                                    })
+                                }
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        enabled = idProductoSeleccionado != null,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE65100))
+                    ) { Text("Editar") }
+                }
+
+                if (idProductoSeleccionado != null) {
+                    TextButton(onClick = { limpiarFormulario() }, modifier = Modifier.fillMaxWidth()) { Text("Cancelar Edición", color = Color.Gray) }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+        Text("Catálogo de Productos", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // LISTA DE PRODUCTOS
+        LazyColumn(modifier = Modifier.fillMaxSize()) {
+            items(listaProductos) { prod ->
+                Surface(
+                    onClick = {
+                        idProductoSeleccionado = prod.id_producto
+                        nombre = prod.nombre_producto
+                        precio = prod.precio_producto.toString()
+                        categoria = prod.categoria_producto
+                        observaciones = prod.observaciones_producto
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (idProductoSeleccionado == prod.id_producto) Color(0xFFFFF3E0) else Color.White,
+                    tonalElevation = 2.dp
+                ) {
+                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            // MOSTRAR: NOMBRE | CATEGORÍA
+                            Text(
+                                text = "${prod.nombre_producto.uppercase()} | ${prod.categoria_producto.uppercase()}",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                                color = Color.Black
+                            )
+                            Text("${prod.precio_producto} €", fontSize = 14.sp, color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold)
+                            if (prod.observaciones_producto.isNotEmpty()) {
+                                Text(prod.observaciones_producto, fontSize = 12.sp, color = Color.Gray)
+                            }
+                        }
+                        IconButton(
+                            onClick = { productoToDelete = prod; showDeleteDialog = true },
+                            modifier = Modifier.background(Color.Red, shape = RoundedCornerShape(4.dp)).size(35.dp)
+                        ) { Text("-", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp) }
+                    }
+                }
+            }
+        }
+    }
+
+    // Diálogo de eliminación
+    if (showDeleteDialog && productoToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Eliminar Producto") },
+            text = { Text("¿Deseas eliminar ${productoToDelete?.nombre_producto}?") },
+            confirmButton = {
+                Button(
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                    onClick = {
+                        RetrofitClient.instance.deleteProducto(productoToDelete!!.id_producto).enqueue(object : Callback<LoginResponse> {
+                            override fun onResponse(call: Call<LoginResponse>, response: Response<LoginResponse>) {
+                                if (response.isSuccessful) {
+                                    cargarProductos()
+                                    showDeleteDialog = false
+                                }
+                            }
+                            override fun onFailure(call: Call<LoginResponse>, t: Throwable) { showDeleteDialog = false }
+                        })
+                    }
+                ) { Text("Eliminar") }
             },
             dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text("Cancelar") } }
         )
