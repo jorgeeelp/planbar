@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.losjorges.planbar.models.Mesa
+import com.losjorges.planbar.models.SesionUsuario
 import com.losjorges.planbar.network.RetrofitClient
 import retrofit2.Call
 import retrofit2.Callback
@@ -55,7 +56,12 @@ fun MesasScreen(navController: NavHostController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("GESTIÓN DE MESAS", fontWeight = FontWeight.Black, fontSize = 20.sp) },
+                title = {
+                    Column {
+                        Text("GESTIÓN DE MESAS", fontSize = 18.sp, fontWeight = FontWeight.Black)
+                        Text("Atendiendo como: ${SesionUsuario.nombre}", fontSize = 12.sp, color = Color.Gray)
+                    }
+                },
                 actions = {
                     IconButton(onClick = { cargarMesas() }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Actualizar")
@@ -72,14 +78,8 @@ fun MesasScreen(navController: NavHostController) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Pulse una mesa para gestionar el pedido",
-                        color = Color.Gray,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
                     LazyVerticalGrid(
-                        columns = GridCells.Fixed(2), // Dos mesas por fila
+                        columns = GridCells.Fixed(2),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         modifier = Modifier.fillMaxSize()

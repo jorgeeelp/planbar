@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.losjorges.planbar.models.Empleado
 import com.losjorges.planbar.models.LoginResponse
+import com.losjorges.planbar.models.SesionUsuario
 import com.losjorges.planbar.network.RetrofitClient
 import com.losjorges.planbar.utils.toSHA256
 import retrofit2.Call
@@ -96,6 +97,8 @@ fun SeleccionEmpleadoScreen(navController: NavHostController) {
                 ) {
                     items(listaEmpleados) { empleado ->
                         EmpleadoCard(empleado) {
+                            SesionUsuario.id = empleado.id_empleado
+                            SesionUsuario.nombre = empleado.nombre_empleado
                             Toast.makeText(context, "Bienvenid@, ${empleado.nombre_empleado}", Toast.LENGTH_SHORT).show()
                             navController.navigate("menu")
                         }
