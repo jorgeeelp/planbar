@@ -45,7 +45,7 @@ fun AdminScreen() {
         drawerContent = {
             ModalDrawerSheet {
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("Panel Administrador", modifier = Modifier.padding(16.dp), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text("Menu", modifier = Modifier.padding(16.dp), fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 HorizontalDivider()
 
                 NavigationDrawerItem(
@@ -95,7 +95,7 @@ fun AdminScreen() {
                     title = {
                         Text(
                             when(pantallaActual) {
-                                "empleados" -> "Gestión Empleados"
+                                "empleados" -> "Gestión Empleados Admin"
                                 "mesas" -> "Gestión Mesas Admin"
                                 "productos" -> "Gestión Productos Admin"
                                 else -> "Administrador"
@@ -227,7 +227,7 @@ fun GestionMesasContent() {
         }
 
         Spacer(modifier = Modifier.height(24.dp))
-        Text("Mesas del Local", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        Text("Mesas", fontWeight = FontWeight.Bold, fontSize = 16.sp)
         Spacer(modifier = Modifier.height(8.dp))
 
         LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -301,8 +301,7 @@ fun GestionEmpleadosContent() {
     var nombre by remember { mutableStateOf("") }
     var rol by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
-    val opcionesRol = listOf("camarero", "cocinero", "admin")
-
+    val opcionesRol = listOf("camarero", "cocinero")
     var listaEmpleados by remember { mutableStateOf(emptyList<Empleado>()) }
     var idEmpleadoSeleccionado by remember { mutableStateOf<Int?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -399,7 +398,7 @@ fun GestionEmpleadosContent() {
         }
 
         Spacer(modifier = Modifier.height(24.dp))
-        Text("Lista de Empleados (Toca para editar)", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        Text("Empleados", fontWeight = FontWeight.Bold, fontSize = 16.sp)
         Spacer(modifier = Modifier.height(8.dp))
 
         LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -527,7 +526,6 @@ fun GestionProductosContent() {
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                     )
 
-                    // Desplegable de Categoría
                     ExposedDropdownMenuBox(
                         expanded = expandedCat,
                         onExpandedChange = { expandedCat = !expandedCat },
@@ -554,12 +552,13 @@ fun GestionProductosContent() {
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Observaciones
-                OutlinedTextField(value = observaciones, onValueChange = { observaciones = it }, label = { Text("Observaciones / Alérgenos") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = observaciones,
+                    onValueChange = { observaciones = it },
+                    label = { Text("Observaciones") },
+                    modifier = Modifier.fillMaxWidth())
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Botones
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
                         onClick = {
@@ -614,7 +613,7 @@ fun GestionProductosContent() {
         }
 
         Spacer(modifier = Modifier.height(24.dp))
-        Text("Catálogo de Productos", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        Text("Productos", fontWeight = FontWeight.Bold, fontSize = 16.sp)
         Spacer(modifier = Modifier.height(8.dp))
 
         // LISTA DE PRODUCTOS
@@ -657,7 +656,6 @@ fun GestionProductosContent() {
         }
     }
 
-    // Diálogo de eliminación
     if (showDeleteDialog && productoToDelete != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
